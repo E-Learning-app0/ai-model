@@ -80,6 +80,6 @@ def generate_questions(state: InputState) -> OutputState:
     answers = answers[:len(questions)]
     
     return {
-        'questions': questions[:5],  # Max 5 questions
-        'answers': answers[:5]       # Matching answers
+        'questions': questions,  # Max 5 questions
+        'answers': answers       # Matching answers
     }
