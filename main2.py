@@ -17,23 +17,31 @@ class QuizRequest(BaseModel):
 
 @app.post("/upload-quiz")
 async def upload_quiz(pdf: UploadFile = File(...)):
-    content = await pdf.read()
-    resp = graph.invoke({"lesson_text": content})
-    quiz = {
-        "title": "Auto Quiz",
-        "questions": [
-            {
-                "id": i + 1,
-                "question": q["question"],
-                "options": q["options"],
-                "answerIndex": ord(resp["answers"][i].upper()) - ord("A"),
-            }
-            for i, q in enumerate(resp["questions"])
-        ]
-    }
-    quiz_id = str(uuid.uuid4())
-    r.setex(quiz_id, CACHE_TTL, json.dumps(quiz))
-    return {"quizId": quiz_id}
+    try:
+        content = await pdf.read()
+        
+        # Pass raw PDF bytes to the graph agent
+        # The extract_text node will handle PDF processing
+        resp = graph.invoke({"lesson_text": content})
+        quiz = {
+            "title": "Auto Quiz",
+            "questions": [
+                {
+                    "id": i + 1,
+                    "question": q["question"],
+                    "options": q["options"],
+                    "answerIndex": ord(resp["answers"][i].upper()) - ord("A"),
+                }
+                for i, q in enumerate(resp["questions"])
+            ]
+        }
+        quiz_id = str(uuid.uuid4())
+        r.setex(quiz_id, CACHE_TTL, json.dumps(quiz))
+        return {"quizId": quiz_id}
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=f"AI Service Error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 
 @app.get("/quiz/{quiz_id}")
