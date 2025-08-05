@@ -4,29 +4,36 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
 def call_openrouter(prompt):
     """
-    Free AI function - uses Ollama (completely free and local)
+    Calls a free OpenRouter model (e.g., mistralai/mistral-7b-instruct:free)
     """
-    return call_ollama(prompt)
-
-def call_ollama(prompt):
-    """Use local Ollama (completely free)"""
     try:
-        payload = {
-            "model": "llama3.1:8b",  # Much faster, better quality model (4.7GB)
-            "prompt": prompt,
-            "stream": False
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://your-app-or-site.com",  # optional
+            "X-Title": "MyOpenRouterApp"  # optional
         }
-        # Increased timeout for larger content processing
-        response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=300)
-        response.raise_for_status()
-        return response.json()["response"]
-    except requests.exceptions.Timeout:
-        raise ValueError("Ollama processing timeout. Try with shorter content or restart Ollama service.")
-    except requests.exceptions.ConnectionError:
-        raise ValueError("Ollama is not running. Please start Ollama service: ollama serve")
-    except Exception as e:
-        raise ValueError(f"Ollama error: {str(e)}. Make sure Ollama is running properly.")
 
+        payload = {
+            "model": "mistralai/mistral-7b-instruct:free",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ]
+        }
+
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", 
+                                 headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+
+    except requests.exceptions.Timeout:
+        raise ValueError("OpenRouter API request timed out.")
+    except requests.exceptions.ConnectionError:
+        raise ValueError("Network error. Cannot reach OpenRouter.")
+    except Exception as e:
+        raise ValueError(f"OpenRouter error: {str(e)}")
 
