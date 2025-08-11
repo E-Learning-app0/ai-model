@@ -6,7 +6,7 @@ import redis
 from my_agent.agent import graph
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+#app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 r = redis.Redis(host="localhost", port=6379, db=0)  # Basic redis-py client :contentReference[oaicite:2]{index=2}
 CACHE_TTL = 24 * 3600  # 24 hours
 
