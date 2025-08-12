@@ -36,4 +36,3 @@ def call_openrouter(prompt):
         raise ValueError("Network error. Cannot reach OpenRouter.")
     except Exception as e:
         raise ValueError(f"OpenRouter error: {str(e)}")
-

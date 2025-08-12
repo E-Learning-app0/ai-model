@@ -44,11 +44,64 @@ async def upload_quiz(pdf: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 
+@app.post("/upload-exam")
+async def upload_exam(pdf: UploadFile = File(...)):
+    try:
+        content = await pdf.read()
+        
+        # Force exam generation by setting module_done flag
+        # This will trigger the exam generation path in the graph
+        resp = graph.invoke({
+            "lesson_text": content,
+            "module_done": True,
+            "generate_exam": True
+        })
+        
+        # Process exam questions and answers
+        exam_questions = []
+        for i, q in enumerate(resp["questions"]):
+            question_data = {
+                "id": i + 1,
+                "question": q["question"],
+                "type": "mcq" if "options" in q else "true_false" if resp["answers"][i] in ["True", "False"] else "resolution",
+                "answer": resp["answers"][i]
+            }
+            
+            # Add options for MCQ questions
+            if "options" in q:
+                question_data["options"] = q["options"]
+                question_data["answerIndex"] = ord(resp["answers"][i].upper()) - ord("A") if resp["answers"][i] in ["A", "B", "C", "D"] else None
+            
+            exam_questions.append(question_data)
+        
+        exam = {
+            "title": "Auto Exam",
+            "questions": exam_questions,
+            "total_questions": len(exam_questions)
+        }
+        
+        exam_id = str(uuid.uuid4())
+        r.setex(exam_id, CACHE_TTL, json.dumps(exam))
+        return {"examId": exam_id}
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=f"AI Service Error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+
+
 @app.get("/quiz/{quiz_id}")
 async def get_quiz(quiz_id: str):
     data = r.get(quiz_id)
     if not data:
         raise HTTPException(404, "Quiz not found or expired")
+    return json.loads(data)
+
+
+@app.get("/exam/{exam_id}")
+async def get_exam(exam_id: str):
+    data = r.get(exam_id)
+    if not data:
+        raise HTTPException(404, "Exam not found or expired")
     return json.loads(data)
 
 
@@ -72,3 +125,5 @@ def get_file(filename: str):
             "Content-Disposition": f'inline; filename="{filename}"'
         }
     )
+
+
