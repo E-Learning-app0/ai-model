@@ -12,21 +12,22 @@ import re
 def generate_qcm(state: InputState) -> OutputState:
     # Your original prompt (unchanged)
     prompt = (
-        "Generate 5 questions with 4 options each. ALL OPTIONS (A/B/C/D) MUST BE PRESENT.\n\n"
-        "For each question, provide the correct answer immediately after the options in this format:\n"
-        "Answer: X\n\n"
-        "Q1: [Question]\n"
-        "A) [Must be a valid option]\n"  
-        "B) [Must be a valid option]\n"
-        "C) [Must be a valid option]\n"  
-        "D) [Must be a valid option]\n"
-        "Answer: [A/B/C/D]\n"
-        "---\n"
-        "(Repeat for Q2-Q5)\n\n"
-        
-        "SOURCE TEXT:\n" + state["lesson_text"] + 
-        "\n\n**GENERATE.**"
-    )
+    "Génère 5 questions avec 4 options chacune. TOUTES LES OPTIONS (A/B/C/D) DOIVENT ÊTRE PRÉSENTES.\n\n"
+    "Pour chaque question, indique la réponse correcte immédiatement après les options dans ce format :\n"
+    "Réponse : X\n\n"
+    "Q1 : [Question]\n"
+    "A) [Doit être une option valide]\n"
+    "B) [Doit être une option valide]\n"
+    "C) [Doit être une option valide]\n"
+    "D) [Doit être une option valide]\n"
+    "Réponse : [A/B/C/D]\n"
+    "---\n"
+    "(Répéter pour Q2 à Q5)\n\n"
+    
+    "TEXTE SOURCE :\n" + state["lesson_text"] + 
+    "\n\n**GÉNÉRER.**"
+)
+
 
     # Get the raw output
     raw_output = call_openrouter(prompt)
@@ -92,27 +93,28 @@ def generate_qcm(state: InputState) -> OutputState:
 def generate_true_false(state: InputState) -> OutputState:
     # Prompt for generating True/False questions
     prompt = (
-        "Generate 5 True/False questions based on the lesson content.\n\n"
-        "For each question, provide the correct answer immediately after in this format:\n"
-        "Answer: True OR Answer: False\n\n"
-        "Q1: [Question]\n"
-        "Answer: [True/False]\n"
-        "---\n"
-        "Q2: [Question]\n"
-        "Answer: [True/False]\n"
-        "---\n"
-        "Q3: [Question]\n"
-        "Answer: [True/False]\n"
-        "---\n"
-        "Q4: [Question]\n"
-        "Answer: [True/False]\n"
-        "---\n"
-        "Q5: [Question]\n"
-        "Answer: [True/False]\n\n"
-        
-        "SOURCE TEXT:\n" + state["lesson_text"] + 
-        "\n\n**GENERATE.**"
-    )
+    "Génère 5 questions Vrai/Faux basées sur le contenu de la leçon.\n\n"
+    "Pour chaque question, indique la réponse correcte immédiatement après dans ce format :\n"
+    "Réponse : Vrai OU Réponse : Faux\n\n"
+    "Q1 : [Question]\n"
+    "Réponse : [Vrai/Faux]\n"
+    "---\n"
+    "Q2 : [Question]\n"
+    "Réponse : [Vrai/Faux]\n"
+    "---\n"
+    "Q3 : [Question]\n"
+    "Réponse : [Vrai/Faux]\n"
+    "---\n"
+    "Q4 : [Question]\n"
+    "Réponse : [Vrai/Faux]\n"
+    "---\n"
+    "Q5 : [Question]\n"
+    "Réponse : [Vrai/Faux]\n\n"
+    
+    "TEXTE SOURCE :\n" + state["lesson_text"] + 
+    "\n\n**GÉNÉRER.**"
+)
+
 
     # Get the raw output from the model
     raw_output = call_openrouter(prompt)
@@ -166,18 +168,19 @@ def generate_true_false(state: InputState) -> OutputState:
 def generate_resolution(state: InputState) -> OutputState:
     # Prompt to generate resolution questions
     prompt = (
-        "Generate 2 resolution/explanation questions based on the lesson content.\n\n"
-        "For each question, provide a detailed explanation as the answer.\n"
-        "Format:\n"
-        "Q1: [Question requiring explanation]\n"
-        "Answer: [Detailed explanation]\n"
-        "---\n"
-        "Q2: [Another question requiring explanation]\n"
-        "Answer: [Detailed explanation]\n\n"
-        
-        "SOURCE TEXT:\n" + state["lesson_text"] +
-        "\n\n**GENERATE.**"
-    )
+    "Génère 2 questions de résolution/explanation basées sur le contenu de la leçon.\n\n"
+    "Pour chaque question, fournis une explication détaillée comme réponse.\n"
+    "Format :\n"
+    "Q1 : [Question nécessitant une explication]\n"
+    "Réponse : [Explication détaillée]\n"
+    "---\n"
+    "Q2 : [Autre question nécessitant une explication]\n"
+    "Réponse : [Explication détaillée]\n\n"
+    
+    "TEXTE SOURCE :\n" + state["lesson_text"] +
+    "\n\n**GÉNÉRER.**"
+)
+
 
     # Get the raw output
     raw_output = call_openrouter(prompt)

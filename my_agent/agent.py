@@ -18,8 +18,7 @@ builder.add_node("generate_exam", generate_exam)            # exam generator
 
 # Flow edges
 builder.add_edge(START, "extract_text")
-builder.add_edge("extract_text", "summarize")
-builder.add_edge("summarize", "check_if_module_done")
+builder.add_edge("extract_text", "check_if_module_done")
 
 # Decision branch (fixed for your langgraph version)
 builder.add_conditional_edges(
@@ -30,7 +29,6 @@ builder.add_conditional_edges(
         "not_done": "generate_questions"
     }
 )
-
 builder.add_edge("combine_all_summaries", "generate_exam")
 builder.add_edge("generate_questions", END)
 builder.add_edge("generate_exam", END)
