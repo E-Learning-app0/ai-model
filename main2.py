@@ -1,48 +1,105 @@
 # main.py
 import uuid, json
-from fastapi import FastAPI, UploadFile, File, HTTPException,Body,Response
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Response
 from fastapi.middleware.cors import CORSMiddleware
 import redis
+import httpx
+import os
 from my_agent.agent import graph
-app = FastAPI()
-#app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-r = redis.Redis(host="localhost", port=6379, db=0)  # Basic redis-py client :contentReference[oaicite:2]{index=2}
+
+app = FastAPI(
+    title="E-Learning Agent Service", 
+    description="AI Agent service for quiz and exam generation",
+    version="1.0.0"
+)
+
+# Environment variables
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+CONTENT_SERVICE_URL = os.getenv("CONTENT_SERVICE_URL", "https://nginx-gateway.blackbush-661cc25b.spaincentral.azurecontainerapps.io")
+
+# Redis client with external host support and Azure Redis Cache compatibility
+if REDIS_PASSWORD:
+    r = redis.Redis(
+        host=REDIS_HOST, 
+        port=REDIS_PORT, 
+        db=0,
+        password=REDIS_PASSWORD,
+        ssl=True,
+        ssl_check_hostname=False,
+        ssl_cert_reqs=None
+    )
+else:
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 CACHE_TTL = 24 * 3600  # 24 hours
 
-QUIZ_SERVICE_EXAM_API = "http://localhost:8002/exams"
+QUIZ_SERVICE_EXAM_API = f"{CONTENT_SERVICE_URL}/api/v1/exams"
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    logger.info(f"----Hello World ---")
+    return {
+        "status": "healthy",
+        "service": "agent-service",
+        "version": "1.0.0",
+        "content_service_url": CONTENT_SERVICE_URL,
+        "redis_host": REDIS_HOST,
+        "redis_port": REDIS_PORT
+    }
 
 from pydantic import BaseModel
 class QuizRequest(BaseModel):
     pdf_path: str
 
+import logging
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("agent-service")  # custom logger
 
 @app.post("/upload-quiz")
 async def upload_quiz(pdf: UploadFile = File(...)):
-    content = await pdf.read()
-    resp = graph.invoke({"lesson_text": content})
-    
-    quiz = {
-        "title": "Auto Quiz",
-        "questions": [
-            {
-                "id": i + 1,
-                "question": q["question"],
-                "options": q["options"],
-                "answerIndex": ord(resp["answers"][i].upper()) - ord("A"),
-            }
-            for i, q in enumerate(resp["questions"])
-        ]
-    }
+    logger.info(f"Received upload request: filename={pdf.filename}")
+    try:
+        # Lazy import to avoid startup issues
+        from my_agent.agent import graph
+        
+        content = await pdf.read()
+        logger.info(f"PDF read successfully, size={len(content)} bytes")
+        resp = graph.invoke({"lesson_text": content})
+        logger.info(f"Graph invocation result: {resp}")
+        logger.info(f"start Quiz generating")
 
-    quiz_id = str(uuid.uuid4())
-    r.setex(quiz_id, CACHE_TTL, json.dumps(quiz))
+        quiz = {
+            "title": "Auto Quiz",
+            "questions": [
+                {
+                    "id": i + 1,
+                    "question": q["question"],
+                    "options": q["options"],
+                    "answerIndex": ord(resp["answers"][i].upper()) - ord("A"),
+                }
+                for i, q in enumerate(resp["questions"])
+            ]
+        }
+        logger.info(f"Quiz generated successfully: {quiz}")
 
-    return {"quizId": quiz_id}
+        quiz_id = str(uuid.uuid4())
+        r.setex(quiz_id, CACHE_TTL, json.dumps(quiz))
+
+        return {"quizId": quiz_id}
+    except Exception as e:
+        logger.exception(f"Quiz generated faild")
+
+        raise HTTPException(status_code=500, detail=f"Quiz generation error: {str(e)}")
 
 
 @app.post("/upload-exam")
-async def upload_exam(pdf: UploadFile = File(...)):
+async def upload_exam(pdf: UploadFile = File(...), module_id: str = None):
     try:
         content = await pdf.read()
         
@@ -108,7 +165,7 @@ async def get_quiz(quiz_id: str):
 
 @app.get("/exam/{exam_id}")
 async def get_exam(exam_id: str):
-    ؤ
+    data = r.get(exam_id)
     if not data:
         raise HTTPException(404, "Exam not found or expired")
     return json.loads(data)

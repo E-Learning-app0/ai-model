@@ -1,11 +1,18 @@
+import logging
 from langchain.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from my_agent.state import InputState,OutputState
+from my_agent.state import InputState, OutputState
 from dotenv import load_dotenv
 from openai import OpenAI
 from my_agent.Nodes.Call_Api import call_openrouter
 import re
 
+# Setup logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("agent-service")  # custom logger
 
 question_prompt = ChatPromptTemplate.from_messages([
     ("system", "Generate 10 4-choice questions with answers from the following lesson content."),
@@ -14,7 +21,7 @@ question_prompt = ChatPromptTemplate.from_messages([
 
 def generate_questions(state: InputState) -> OutputState:
     prompt = (
-        "Génère 5 questions avec 4 options chacune. TOUTES LES OPTIONS (A/B/C/D) DOIVENT ÊTRE PRÉSENTES.\n\n"
+        "Génère 5 questions avec 4 options chacune. TOUTES LES OPTIONS (A/B/C/D DOIVENT ÊTRE PRÉSENTES).\n\n"
         "Pour chaque question, fournis la bonne réponse immédiatement après les options dans ce format :\n"
         "Réponse : X\n\n"
         "Q1 : [Question]\n"
@@ -29,11 +36,14 @@ def generate_questions(state: InputState) -> OutputState:
         "\n\n**GÉNÉRER.**"
     )
 
-    print("---Start Generation QCM----")
-    raw_output = call_openrouter(prompt)
-    print('-----------------')
-    print(raw_output)
-    print('-----------------')
+    logger.info("Start generation of QCM questions")
+    try:
+        raw_output = call_openrouter(prompt)
+        logger.info("Received raw output from OpenRouter API")
+        logger.info(raw_output)
+    except Exception as e:
+        logger.error(f"Error during OpenRouter call: {e}", exc_info=True)
+        return {'questions': [], 'answers': []}
 
     questions = []
     answers = []
@@ -74,6 +84,7 @@ def generate_questions(state: InputState) -> OutputState:
     questions = questions[:len(answers)]
     answers = answers[:len(questions)]
 
+    logger.info(f"Generated {len(questions)} questions with {len(answers)} answers")
     return {
         'questions': questions,
         'answers': answers

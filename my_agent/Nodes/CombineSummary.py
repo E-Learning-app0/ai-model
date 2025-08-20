@@ -2,7 +2,28 @@ import redis
 from my_agent.state import InputState, OutputState
 
 # Initialize Redis connection (adjust parameters as needed)
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+import redis
+import json
+import os
+
+# Redis connection with environment variable support
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+
+# Create Redis connection with Azure Redis Cache support
+if REDIS_PASSWORD:
+    redis_client = redis.Redis(
+        host=REDIS_HOST, 
+        port=REDIS_PORT, 
+        db=0,
+        password=REDIS_PASSWORD,
+        ssl=True,
+        ssl_check_hostname=False,
+        ssl_cert_reqs=None
+    )
+else:
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0)
 
 def combine_all_summaries(state: InputState) -> OutputState:
     module_id = state.get("module_id") or "test_module"
